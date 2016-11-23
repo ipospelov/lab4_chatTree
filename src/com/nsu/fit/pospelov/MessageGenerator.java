@@ -3,11 +3,12 @@ package com.nsu.fit.pospelov;
 /**
  * Created by posiv on 24.11.16.
  */
-public class Message {
+public class MessageGenerator {
     private String type;
-    public Message(String type) {
+    public MessageGenerator(String type) {
         this.type = type;
     }
+
     public String getMessageToSend(){
         String result = "";
         String UUID = java.util.UUID.randomUUID().toString();

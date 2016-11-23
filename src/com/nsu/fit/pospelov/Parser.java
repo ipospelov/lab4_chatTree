@@ -15,11 +15,11 @@ public class Parser {
         options = new Options();
         parser = new DefaultParser();
 
-        options.addOption("aparent",false,"ParentAddress");
-        options.addOption("pparent",false,"ParentPort");
         options.addOption("p",true,"Port");
         options.addOption("lose",true,"LosePercent");
         options.addOption("name",true,"NodeName");
+        options.addOption("paddress",true,"ParentAddress");
+        options.addOption("pport",true,"ParentPort");
 
         try{
             Client client;
@@ -27,10 +27,9 @@ public class Parser {
             int losePercent = Integer.parseInt(cmd.getOptionValue("lose"));
             int nodePort = Integer.parseInt(cmd.getOptionValue("p"));
 
-            if(cmd.hasOption("aparent") && cmd.hasOption("pparent")){
-                InetAddress aparentAddress = InetAddress.getByName(cmd.getOptionValue("aparent"));
-                int pparentPort = Integer.parseInt(cmd.getOptionValue("pparent"));
-
+            if(cmd.hasOption("paddress") && cmd.hasOption("pport")){
+                InetAddress aparentAddress = InetAddress.getByName(cmd.getOptionValue("paddress"));
+                int pparentPort = Integer.parseInt(cmd.getOptionValue("pport"));
                 client = new Client(cmd.getOptionValue("name"), losePercent, nodePort, aparentAddress, pparentPort);
             }else{
                 client = new Client(cmd.getOptionValue("name"), losePercent, nodePort);
@@ -38,6 +37,7 @@ public class Parser {
 
         }catch (Exception e){
             System.out.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 }
