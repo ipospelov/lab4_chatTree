@@ -1,5 +1,7 @@
 package com.nsu.fit.pospelov;
 
+import javafx.util.Pair;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -36,7 +38,7 @@ public class Client {
 
     private Map<UUID,String> receivedMessages;                 //хранилище принятых
     private Map<UUID,String> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
-    private Queue<DatagramPacket> toSend;                      //очередь сообщений на отправку
+    private Queue<Pair<DatagramPacket, String>> toSend;                     //очередь сообщений на отправку
 
     private MessageHandler messageHandler;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
 

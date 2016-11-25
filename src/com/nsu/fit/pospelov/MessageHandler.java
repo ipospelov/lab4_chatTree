@@ -1,6 +1,8 @@
 package com.nsu.fit.pospelov;
 
 
+import javafx.util.Pair;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.util.Map;
@@ -12,9 +14,9 @@ public class MessageHandler {
     private Node parentNode;
     private Set<Node> childNodes;
     private Map<UUID, String> sendedMessages;
-    private Queue<DatagramPacket> toSend;
+    private Queue<Pair<DatagramPacket, String>> toSend;
 
-    MessageHandler(Node parentNode, Set<Node> childNodes, Map<UUID, String> sendedMessages, Queue<DatagramPacket> toSend){
+    MessageHandler(Node parentNode, Set<Node> childNodes, Map<UUID, String> sendedMessages, Queue<Pair<DatagramPacket, String>> toSend){
         this.parentNode = parentNode;
         this.childNodes = childNodes;
         this.sendedMessages = sendedMessages;
@@ -22,6 +24,9 @@ public class MessageHandler {
     }
 
     private void sendMessage(){
+        if(!toSend.isEmpty()){
+
+        }
 
     }
     public void putMessageIntoQueue(String type) throws IOException {
@@ -30,6 +35,6 @@ public class MessageHandler {
         buf = messageGenerator.getMessageToSend().getBytes();
         //System.out.println(new String(buf, "ASCII"));
         DatagramPacket toSend = new DatagramPacket(buf, buf.length, parentNode.getNodeAddress(), parentNode.getNodePort());
-        this.toSend.add(toSend);
+        this.toSend.add(new Pair<>(toSend,type));
     }
 }
