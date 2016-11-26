@@ -38,16 +38,18 @@ public class Client {
 
     private Map<UUID,String> receivedMessages;                 //хранилище принятых
     private Map<UUID,String> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
-    private Queue<Pair<DatagramPacket, String>> toSend;                     //очередь сообщений на отправку
+    private Queue<Pair<String, DatagramPacket>> toSend;                     //очередь сообщений на отправку
 
-    private MessageHandler messageHandler;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
+    private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
 
 
 
     Client(String nodeName, int losePercent, int port) throws Exception {
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
-        messageHandler = new MessageHandler(parentNode,childNodes,sendedMessages,toSend);
+        messageHandlerSingleton = MessageHandlerSingleton.getInstance();
+        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, toSend);
+        //new MessageHandlerSingleton(parentNode,childNodes,sendedMessages,toSend);
         //getMesage();
     }
 
@@ -55,8 +57,10 @@ public class Client {
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
         parentNode = new Node(parentAddress, parentPort);
-        messageHandler = new MessageHandler(parentNode,childNodes, sendedMessages, toSend);
-        messageHandler.putMessageIntoQueue("CONNECT");
+        messageHandlerSingleton = MessageHandlerSingleton.getInstance();
+        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, toSend);
+        //messageHandlerSingleton = new MessageHandlerSingleton(parentNode,childNodes, sendedMessages, toSend);
+        messageHandlerSingleton.putMessageIntoQueue("CONNECT");
         //sendMessage("CONNECT");
     }
 
