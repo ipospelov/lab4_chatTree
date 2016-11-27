@@ -15,7 +15,7 @@ public class Client {
                 message = in.nextLine();
                 System.out.println(message);
                 try {
-                    messageHandlerSingleton.putMessageIntoQueue("USERS",message);
+                    messageHandlerSingleton.putMessageIntoQueue("USERS",message,clientName);
                 } catch (IOException e) {
                     System.out.println("Putting into queue error");
                     e.printStackTrace();
@@ -64,6 +64,7 @@ public class Client {
     private Set<Node> childNodes;
     private Node node;
     private DatagramSocket socket;
+    private String clientName;
 
     private Map<UUID,Message> receivedMessages;                 //хранилище принятых
     private Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
@@ -74,6 +75,7 @@ public class Client {
 
 
     Client(String nodeName, int losePercent, int port) throws Exception {
+        clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
@@ -84,13 +86,14 @@ public class Client {
     }
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
+        clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
         parentNode = new Node(parentAddress, parentPort);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
-        messageHandlerSingleton.putMessageIntoQueue("CONNECT", null);
+        messageHandlerSingleton.putMessageIntoQueue("CONNECT", null,nodeName);
 
         inputStreamReader.start();
     }

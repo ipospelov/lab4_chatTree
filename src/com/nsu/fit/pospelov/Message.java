@@ -11,10 +11,12 @@ public class Message {
     private UUID id;
     private String type;
     private String usersMessage;
+    private String nodeName;
 
-    public Message(String s, String type) {
+    public Message(String s, String type, String name) {
         this.type = type;
         this.usersMessage = s;
+        nodeName =name;
 
     }
 
@@ -24,7 +26,7 @@ public class Message {
         id = java.util.UUID.randomUUID();
         switch (type){
             case "CONNECT":
-                result = type + ":" + id.toString();
+                result = type + ":" + id.toString() + ":" + nodeName;
                 buf = result.getBytes();
                 packet = new DatagramPacket(buf, buf.length);
                 break;
@@ -42,6 +44,8 @@ public class Message {
     public String getType() {
         return type;
     }
+
+    public String getUsersMessage() {return usersMessage;}
 
     public void setId(UUID id) {this.id = id;}
 

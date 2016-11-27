@@ -12,7 +12,7 @@ public class Node {
     private String nodeName;
     private int nodeLosePercent;
 
-    public Node(String nodeName, int nodeLosePercent, int nodePort) throws UnknownHostException {
+    public Node(String nodeName, InetAddress nodeAddress, int nodePort) throws UnknownHostException {
         this.nodeAddress = InetAddress.getLocalHost();
         this.nodePort = nodePort;
         this.nodeName = nodeName;

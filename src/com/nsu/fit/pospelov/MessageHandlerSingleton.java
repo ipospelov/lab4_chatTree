@@ -48,19 +48,36 @@ public class MessageHandlerSingleton {
         receivedMessages.put(message.getId(),message);
     }
 
-    public Message parseMessage(DatagramPacket packet) throws UnsupportedEncodingException {
+    public Message parseMessage(DatagramPacket packet) throws Exception {
         Message message;
         String[] splittedMessage;
         String s = new String(packet.getData(), "ASCII");
         splittedMessage = s.split(":");
-        message = new Message(splittedMessage[0], null);
+        message = new Message(splittedMessage[0], null,splittedMessage[2]);
+
         switch (message.getType()){
             case "CONNECT":
                 message.setId(java.util.UUID.fromString(splittedMessage[1]));
+                childNodes.add(new Node(splittedMessage[2],packet.getAddress(),packet.getPort()));
                 break;
         }
         return message;
     }
+
+/*    public void handleMessage(Message message){
+        switch (message.getType()){
+            case "USERS":
+                System.out.println(message.getUsersMessage());
+                break;
+            case "CONNECT":
+                //Node node = new Node()
+                //childNodes.add()
+                break;
+        }
+        *//*if(message.getType().equals("USERS")){
+            System.out.println(message.getUsersMessage());
+        }else if*//*
+    }*/
 
     public void sendMessage() throws IOException {
         Message message;
@@ -72,16 +89,16 @@ public class MessageHandlerSingleton {
                 packet.setPort(parentNode.getNodePort());
                 packet.setAddress(parentNode.getNodeAddress());
             }
-            //добавить в отправленные
             sendedMessages.put(message.getId(),message);
             socket.send(packet);
+            toSend.remove();
         }
     }
 
 
 
-    public void putMessageIntoQueue(String type, String data) throws IOException { //помещает message в очередь
-        Message message = new Message(type, data);
+    public void putMessageIntoQueue(String type, String data, String name) throws IOException { //помещает message в очередь
+        Message message = new Message(type, data,name);
         message.initDatagramPacket();
         toSend.add(message);
         //byte buf[];
