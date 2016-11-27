@@ -1,18 +1,46 @@
 package com.nsu.fit.pospelov;
 
-import javafx.util.Pair;
-
-import java.net.DatagramPacket;
+import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class Client {
 
-    private class MessageParser {
+    private class InputStreamReader extends Thread{
+        public void run(){
+            Scanner in = new Scanner(System.in);
+            String message;
+            while (true) {
+                message = in.nextLine();
+                System.out.println(message);
+                try {
+                    messageHandlerSingleton.putMessageIntoQueue("USERS",message);
+                } catch (IOException e) {
+                    System.out.println("Putting into queue error");
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private class MessageNetworkInterraction extends Thread{ //посылает и принимает
+        public void run(){
+            while (true){
+
+                try {
+
+                    messageHandlerSingleton.sendMessage();
+                    //sleep(500);
+                    
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /*private class MessageParser {
 
         private String[] splitedMessage;
         public MessageParser(String message, InetAddress address, int port) {
@@ -29,7 +57,8 @@ public class Client {
         private void parseMessage() {
 
         }
-    }
+    }*/
+    private InputStreamReader inputStreamReader;
 
     private Node parentNode;
     private Set<Node> childNodes;
@@ -45,23 +74,25 @@ public class Client {
 
 
     Client(String nodeName, int losePercent, int port) throws Exception {
+        inputStreamReader = new InputStreamReader();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
-        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, toSend);
-        //new MessageHandlerSingleton(parentNode,childNodes,sendedMessages,toSend);
-        //getMesage();
+        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
+
+        inputStreamReader.start();
     }
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
+        inputStreamReader = new InputStreamReader();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
         parentNode = new Node(parentAddress, parentPort);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
-        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, toSend);
-        //messageHandlerSingleton = new MessageHandlerSingleton(parentNode,childNodes, sendedMessages, toSend);
-        messageHandlerSingleton.putMessageIntoQueue("CONNECT");
-        //sendMessage("CONNECT");
+        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
+        messageHandlerSingleton.putMessageIntoQueue("CONNECT", null);
+
+        inputStreamReader.start();
     }
 
 

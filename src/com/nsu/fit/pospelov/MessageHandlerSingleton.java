@@ -1,10 +1,7 @@
 package com.nsu.fit.pospelov;
 
-
-import javafx.scene.chart.PieChart;
-import javafx.util.Pair;
-
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.Map;
@@ -16,6 +13,7 @@ public class MessageHandlerSingleton {
     private Node parentNode;
     private Set<Node> childNodes;
     private Map<UUID,Message> sendedMessages;
+    private Map<UUID,Message> receivedMessages;
     private Queue<Message> toSend; //тип сообщения в первом аргументе
     private DatagramSocket socket;
 
@@ -31,16 +29,40 @@ public class MessageHandlerSingleton {
     }
 
 
-    void MessageHandlerInit(DatagramSocket socket, Node parentNode, Set<Node> childNodes, Map<UUID, Message> sendedMessages, Queue<Message> toSend){
+    void MessageHandlerInit(DatagramSocket socket, Node parentNode, Set<Node> childNodes, Map<UUID, Message> sendedMessages, Map<UUID, Message> receivedMessages, Queue<Message> toSend){
         this.parentNode = parentNode;
         this.childNodes = childNodes;
         this.sendedMessages = sendedMessages;
+        this.receivedMessages = receivedMessages;
         this.toSend = toSend;
         this.socket = socket;
 
     }
 
-    private void sendMessage() throws IOException {
+    public void receiveMessage() throws Exception {
+        byte buf[] = new byte[1024];
+        socket.setSoTimeout(500);
+        DatagramPacket packet = new DatagramPacket(buf,buf.length);
+        socket.receive(packet);
+        Message message = parseMessage(packet);
+        receivedMessages.put(message.getId(),message);
+    }
+
+    public Message parseMessage(DatagramPacket packet) throws UnsupportedEncodingException {
+        Message message;
+        String[] splittedMessage;
+        String s = new String(packet.getData(), "ASCII");
+        splittedMessage = s.split(":");
+        message = new Message(splittedMessage[0], null);
+        switch (message.getType()){
+            case "CONNECT":
+                message.setId(java.util.UUID.fromString(splittedMessage[1]));
+                break;
+        }
+        return message;
+    }
+
+    public void sendMessage() throws IOException {
         Message message;
         DatagramPacket packet;
         if(!toSend.isEmpty()){
@@ -54,11 +76,12 @@ public class MessageHandlerSingleton {
             sendedMessages.put(message.getId(),message);
             socket.send(packet);
         }
-
-
     }
-    public void putMessageIntoQueue(String type) throws IOException { //помещает message в очередь
-        Message message = new Message(type);
+
+
+
+    public void putMessageIntoQueue(String type, String data) throws IOException { //помещает message в очередь
+        Message message = new Message(type, data);
         message.initDatagramPacket();
         toSend.add(message);
         //byte buf[];

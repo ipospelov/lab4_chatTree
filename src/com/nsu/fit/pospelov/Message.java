@@ -10,9 +10,12 @@ public class Message {
     private DatagramPacket packet;
     private UUID id;
     private String type;
+    private String usersMessage;
 
-    public Message(String type) {
+    public Message(String s, String type) {
         this.type = type;
+        this.usersMessage = s;
+
     }
 
     public void initDatagramPacket(){
@@ -39,4 +42,10 @@ public class Message {
     public String getType() {
         return type;
     }
+
+    public void setId(UUID id) {this.id = id;}
+
+    public void setType(String type) {this.type = type;}
+
+    public void setUsersMessage(String usersMessage) {this.usersMessage = usersMessage;}
 }
