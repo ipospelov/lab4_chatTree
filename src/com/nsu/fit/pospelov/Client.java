@@ -36,9 +36,9 @@ public class Client {
     private Node node;
     private DatagramSocket socket;
 
-    private Map<UUID,String> receivedMessages;                 //хранилище принятых
-    private Map<UUID,String> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
-    private Queue<Pair<String, DatagramPacket>> toSend;                     //очередь сообщений на отправку
+    private Map<UUID,Message> receivedMessages;                 //хранилище принятых
+    private Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
+    private Queue<Message> toSend;                     //очередь сообщений на отправку
 
     private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
 
