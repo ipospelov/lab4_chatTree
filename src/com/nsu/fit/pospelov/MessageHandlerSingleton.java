@@ -17,6 +17,8 @@ public class MessageHandlerSingleton {
     private Queue<Message> toSend; //тип сообщения в первом аргументе
     private DatagramSocket socket;
 
+    private byte buf[];
+
     MessageHandlerSingleton(){
     }
 
@@ -29,7 +31,10 @@ public class MessageHandlerSingleton {
     }
 
 
-    void MessageHandlerInit(DatagramSocket socket, Node parentNode, Set<Node> childNodes, Map<UUID, Message> sendedMessages, Map<UUID, Message> receivedMessages, Queue<Message> toSend){
+    void MessageHandlerInit(DatagramSocket socket, Node parentNode, Set<Node> childNodes,
+                            Map<UUID, Message> sendedMessages, Map<UUID, Message> receivedMessages,
+                            Queue<Message> toSend){
+        buf = new byte[1024];
         this.parentNode = parentNode;
         this.childNodes = childNodes;
         this.sendedMessages = sendedMessages;
@@ -40,7 +45,6 @@ public class MessageHandlerSingleton {
     }
 
     public void receiveMessage() throws Exception {
-        byte buf[] = new byte[1024];
         socket.setSoTimeout(500);
         DatagramPacket packet = new DatagramPacket(buf,buf.length);
         socket.receive(packet);
@@ -53,12 +57,13 @@ public class MessageHandlerSingleton {
         String[] splittedMessage;
         String s = new String(packet.getData(), "ASCII");
         splittedMessage = s.split(":");
-        message = new Message(splittedMessage[0], null,splittedMessage[2]);
+        message = new Message(null,splittedMessage[0], splittedMessage[2]); //usersMes, type, nodeName
 
         switch (message.getType()){
             case "CONNECT":
                 message.setId(java.util.UUID.fromString(splittedMessage[1]));
-                childNodes.add(new Node(splittedMessage[2],packet.getAddress(),packet.getPort()));
+                childNodes.add(new Node(message.getNodeName(),packet.getAddress(),packet.getPort()));
+                System.out.println(s);
                 break;
         }
         return message;
@@ -89,8 +94,8 @@ public class MessageHandlerSingleton {
                 packet.setPort(parentNode.getNodePort());
                 packet.setAddress(parentNode.getNodeAddress());
             }
-            sendedMessages.put(message.getId(),message);
             socket.send(packet);
+            sendedMessages.put(message.getId(),message);
             toSend.remove();
         }
     }
@@ -98,7 +103,7 @@ public class MessageHandlerSingleton {
 
 
     public void putMessageIntoQueue(String type, String data, String name) throws IOException { //помещает message в очередь
-        Message message = new Message(type, data,name);
+        Message message = new Message(type, data, name);
         message.initDatagramPacket();
         toSend.add(message);
         //byte buf[];

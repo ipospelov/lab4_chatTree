@@ -24,6 +24,13 @@ public class Node {
         this.nodePort = nodePort;
     }
 
+    public Node(String nodeName, int nodeLosePercent ,int nodePort) {
+        this.nodeName = nodeName;
+        this.nodeLosePercent = nodeLosePercent;
+        this.nodePort = nodePort;
+    }
+
+
     public int getNodePort() {
         return nodePort;
     }

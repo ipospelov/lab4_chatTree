@@ -13,9 +13,9 @@ public class Message {
     private String usersMessage;
     private String nodeName;
 
-    public Message(String s, String type, String name) {
+    public Message(String usersMessage, String type, String name) {
         this.type = type;
-        this.usersMessage = s;
+        this.usersMessage = usersMessage;
         nodeName =name;
 
     }
@@ -40,6 +40,8 @@ public class Message {
     public UUID getId() {
         return id;
     }
+
+    public String getNodeName(){ return nodeName; }
 
     public String getType() {
         return type;

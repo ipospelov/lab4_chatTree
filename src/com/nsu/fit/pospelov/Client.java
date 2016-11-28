@@ -24,14 +24,14 @@ public class Client {
         }
     }
 
-    private class MessageNetworkInterraction extends Thread{ //посылает и принимает
+    private class MessageSender extends Thread{ //посылает и принимает
         public void run(){
             while (true){
 
                 try {
 
                     messageHandlerSingleton.sendMessage();
-                    //sleep(500);
+                    sleep(500);
                     
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -40,25 +40,19 @@ public class Client {
         }
     }
 
-    /*private class MessageParser {
-
-        private String[] splitedMessage;
-        public MessageParser(String message, InetAddress address, int port) {
-
-            splitedMessage = message.split(":");
-            parseMessage();
-            switch (splitedMessage[0]){
-                case "CONNECT":
-                    childNodes.add(new Node(address,port));
-                    break;
+    private class MessageReader extends Thread{
+        public void run(){
+            try {
+                messageHandlerSingleton.receiveMessage();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
+    }
 
-        private void parseMessage() {
-
-        }
-    }*/
     private InputStreamReader inputStreamReader;
+    private MessageSender messageSender;
+    private MessageReader messageReader;
 
     private Node parentNode;
     private Set<Node> childNodes;
@@ -82,7 +76,7 @@ public class Client {
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
 
-        inputStreamReader.start();
+        //inputStreamReader.start();
     }
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
@@ -95,7 +89,7 @@ public class Client {
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
         messageHandlerSingleton.putMessageIntoQueue("CONNECT", null,nodeName);
 
-        inputStreamReader.start();
+        //inputStreamReader.start();
     }
 
 
