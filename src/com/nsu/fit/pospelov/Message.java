@@ -21,7 +21,7 @@ public class Message {
     }
 
     public void initDatagramPacket(){
-        String result = "";
+        String result;
         byte buf[];
         id = java.util.UUID.randomUUID();
         switch (type){

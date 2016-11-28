@@ -15,7 +15,7 @@ public class Client {
                 message = in.nextLine();
                 System.out.println(message);
                 try {
-                    messageHandlerSingleton.putMessageIntoQueue("USERS",message,clientName);
+                    messageHandlerSingleton.putMessageIntoDeque("USERS",message,clientName);
                 } catch (IOException e) {
                     System.out.println("Putting into queue error");
                     e.printStackTrace();
@@ -24,7 +24,7 @@ public class Client {
         }
     }
 
-    private class MessageSender extends Thread{ //посылает и принимает
+    private class MessageSender extends Thread{ // принимает
         public void run(){
             while (true){
 
@@ -42,10 +42,14 @@ public class Client {
 
     private class MessageReader extends Thread{
         public void run(){
-            try {
-                messageHandlerSingleton.receiveMessage();
-            } catch (Exception e) {
-                e.printStackTrace();
+            while (true) {
+                try {
+                    messageHandlerSingleton.receiveMessage();
+                } catch (Exception e) {
+                    //e.printStackTrace();
+
+                    continue;
+                }
             }
         }
     }
@@ -62,7 +66,7 @@ public class Client {
 
     private Map<UUID,Message> receivedMessages;                 //хранилище принятых
     private Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
-    private Queue<Message> toSend;                     //очередь сообщений на отправку
+    private Deque<Message> toSend;                     //очередь сообщений на отправку
 
     private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
 
@@ -71,23 +75,28 @@ public class Client {
     Client(String nodeName, int losePercent, int port) throws Exception {
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
+        messageReader = new MessageReader();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
 
+        messageReader.start();
         //inputStreamReader.start();
     }
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
+        messageSender = new MessageSender();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
         parentNode = new Node(parentAddress, parentPort);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
-        messageHandlerSingleton.putMessageIntoQueue("CONNECT", null,nodeName);
+        messageHandlerSingleton.putMessageIntoDeque("CONNECT", null, nodeName);
+
+        messageSender.start();
 
         //inputStreamReader.start();
     }
