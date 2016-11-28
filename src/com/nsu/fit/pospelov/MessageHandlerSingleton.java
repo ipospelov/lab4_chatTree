@@ -14,7 +14,7 @@ public class MessageHandlerSingleton {
     private Set<Node> childNodes;
     private Map<UUID,Message> sendedMessages;
     private Map<UUID,Message> receivedMessages;
-    private Deque<Message> toSend; //тип сообщения в первом аргументе
+    private volatile Deque<Message> toSend; //тип сообщения в первом аргументе
     private DatagramSocket socket;
 
     private byte buf[];
@@ -36,6 +36,7 @@ public class MessageHandlerSingleton {
                             Deque<Message> toSend){
         toSend = new LinkedBlockingDeque(10);
         sendedMessages = new HashMap<>();
+        childNodes = new HashSet<>();
         buf = new byte[1024];
         this.parentNode = parentNode;
         this.childNodes = childNodes;
@@ -47,11 +48,11 @@ public class MessageHandlerSingleton {
     }
 
     public void receiveMessage() throws Exception {
-        socket.setSoTimeout(500);
+        Arrays.fill( buf, (byte) 0 );
         DatagramPacket packet = new DatagramPacket(buf,buf.length);
         socket.receive(packet);
-        System.out.println("Smth");
         Message message = parseMessage(packet);
+        //System.out.println("yes");
         receivedMessages.put(message.getId(),message);
     }
 
@@ -59,49 +60,55 @@ public class MessageHandlerSingleton {
         Message message;
         String[] splittedMessage;
         String s = new String(packet.getData(), "ASCII");
+        String usersMessage;
         splittedMessage = s.split(":");
         message = new Message(null,splittedMessage[0], splittedMessage[2]); //usersMes, type, nodeName
-
+        //System.out.println(message.getType());
         switch (message.getType()){
             case "CONNECT":
                 message.setId(java.util.UUID.fromString(splittedMessage[1]));
                 childNodes.add(new Node(message.getNodeName(),packet.getAddress(),packet.getPort()));
-                System.out.println(s);
+                //System.out.println(childNodes.size());
                 break;
+            case "USERS":
+                message.setUsersMessage(splittedMessage[3]);
+                message.setId(java.util.UUID.fromString(splittedMessage[1]));
+                System.out.println(message.getNodeName() +":"+message.getUsersMessage());
         }
         return message;
     }
 
-/*    public void handleMessage(Message message){
-        switch (message.getType()){
-            case "USERS":
-                System.out.println(message.getUsersMessage());
-                break;
-            case "CONNECT":
-                //Node node = new Node()
-                //childNodes.add()
-                break;
-        }
-        *//*if(message.getType().equals("USERS")){
-            System.out.println(message.getUsersMessage());
-        }else if*//*
-    }*/
-
     public void sendMessage() throws Exception {
         Message message;
         DatagramPacket packet;
-        //System.out.println(toSend.size());
-        //System.exit(1);
+
         if(!toSend.isEmpty()){
             message = toSend.getFirst();
             packet = message.getPacket();
             if(message.getType().equals("CONNECT")) {
                 packet.setPort(parentNode.getNodePort());
                 packet.setAddress(parentNode.getNodeAddress());
+                socket.send(packet);
+                sendedMessages.put(message.getId(),message);
+
             }
-            sendedMessages.put(message.getId(),message);
+            if(message.getType().equals("USERS")) {
+                if(parentNode != null) {
+                    packet.setPort(parentNode.getNodePort());
+                    packet.setAddress(parentNode.getNodeAddress());
+                    socket.send(packet);
+                    sendedMessages.put(message.getId(), message);
+                }
+                for(Node node: childNodes){
+                    packet.setPort(node.getNodePort());
+                    packet.setAddress(node.getNodeAddress());
+                    socket.send(packet);
+                    sendedMessages.put(message.getId(),message);
+                }
+
+            }
             toSend.pollFirst();
-            //toSend.remove();
+
         }
     }
 
@@ -110,15 +117,6 @@ public class MessageHandlerSingleton {
     public void putMessageIntoDeque(String type, String data, String name) throws IOException { //помещает message в очередь
         Message message = new Message(data, type, name);
         message.initDatagramPacket();
-        //System.out.println("!" + toSend.size());
-
         toSend.push(message);
-        //toSend.add(message);
-        //byte buf[];
-        //MessageGenerator messageGenerator = new MessageGenerator(type);
-        //buf = messageGenerator.getMessageToSend().getBytes();
-        //System.out.println(new String(buf, "ASCII"));
-        //DatagramPacket toSend = new DatagramPacket(buf, buf.length, parentNode.getNodeAddress(), parentNode.getNodePort());
-        //this.toSend.add(new Message(toSend,messageGenerator.getId(),messageGenerator.getType()));
     }
 }

@@ -30,6 +30,11 @@ public class Message {
                 buf = result.getBytes();
                 packet = new DatagramPacket(buf, buf.length);
                 break;
+            case "USERS":
+                result = type + ":" + id.toString() + ":" + nodeName + ":" + usersMessage;
+                buf = result.getBytes();
+                packet = new DatagramPacket(buf, buf.length);
+                break;
         }
     }
 

@@ -1,6 +1,7 @@
 package com.nsu.fit.pospelov;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
@@ -13,18 +14,17 @@ public class Client {
             String message;
             while (true) {
                 message = in.nextLine();
-                System.out.println(message);
                 try {
                     messageHandlerSingleton.putMessageIntoDeque("USERS",message,clientName);
                 } catch (IOException e) {
-                    System.out.println("Putting into queue error");
+                    System.out.println("Putting into Deque error");
                     e.printStackTrace();
                 }
             }
         }
     }
 
-    private class MessageSender extends Thread{ // принимает
+    private class MessageSender extends Thread{
         public void run(){
             while (true){
 
@@ -35,6 +35,7 @@ public class Client {
                     
                 } catch (Exception e) {
                     e.printStackTrace();
+                    continue;
                 }
             }
         }
@@ -73,16 +74,20 @@ public class Client {
 
 
     Client(String nodeName, int losePercent, int port) throws Exception {
+
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         messageReader = new MessageReader();
+        messageSender = new MessageSender();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
+        //System.out.println(port);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
 
         messageReader.start();
-        //inputStreamReader.start();
+        inputStreamReader.start();
+        //messageSender.start();
     }
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
@@ -91,12 +96,18 @@ public class Client {
         messageSender = new MessageSender();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
+
+        //InetAddress addr = InetAddress.getByName("192.168.0.180");
+        //socket.send(new DatagramPacket(new byte[1],1,parentAddress,1236));
+        //System.exit(1);
+
         parentNode = new Node(parentAddress, parentPort);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
         messageHandlerSingleton.putMessageIntoDeque("CONNECT", null, nodeName);
 
         messageSender.start();
+        inputStreamReader.start();
 
         //inputStreamReader.start();
     }
