@@ -87,19 +87,16 @@ public class Client {
 
         messageReader.start();
         inputStreamReader.start();
-        //messageSender.start();
+        messageSender.start();
     }
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         messageSender = new MessageSender();
+        messageReader = new MessageReader();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
-
-        //InetAddress addr = InetAddress.getByName("192.168.0.180");
-        //socket.send(new DatagramPacket(new byte[1],1,parentAddress,1236));
-        //System.exit(1);
 
         parentNode = new Node(parentAddress, parentPort);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
@@ -108,26 +105,8 @@ public class Client {
 
         messageSender.start();
         inputStreamReader.start();
-
-        //inputStreamReader.start();
-    }
-
-
-/*    private void getMesage() throws IOException {
-        byte buff[] = new byte[1024];
-        MessageParser messageParser;
-        String message;
-        DatagramPacket rcv = new DatagramPacket(buff,1024);
-        socket.receive(rcv);
-        messageParser = new MessageParser(new String(rcv.getData(), "ASCII"), rcv.getAddress(), rcv.getPort());
-        //message = new String(rcv.getData(), "ASCII");
-        //System.out.println(message);
-    }*/
-
-
-
-
-    private void putIntoTree(InetAddress rootAddress, int rootPort){
+        messageReader.start();
 
     }
+
 }

@@ -11,27 +11,30 @@ public class Message {
     private UUID id;
     private String type;
     private String usersMessage;
-    private String nodeName;
+    private String ownerNodeName;
+    private String lastSenderNodeName;
 
     public Message(String usersMessage, String type, String name) {
         this.type = type;
         this.usersMessage = usersMessage;
-        nodeName =name;
+        ownerNodeName =name;
 
     }
 
     public void initDatagramPacket(){
         String result;
         byte buf[];
-        id = java.util.UUID.randomUUID();
+        if(id == null) {
+            id = java.util.UUID.randomUUID();
+        }
         switch (type){
             case "CONNECT":
-                result = type + ":" + id.toString() + ":" + nodeName;
+                result = type + ":" + id.toString() + ":" + ownerNodeName;
                 buf = result.getBytes();
                 packet = new DatagramPacket(buf, buf.length);
                 break;
             case "USERS":
-                result = type + ":" + id.toString() + ":" + nodeName + ":" + usersMessage;
+                result = type + ":" + id.toString() + ":" + ownerNodeName + ":" + usersMessage;
                 buf = result.getBytes();
                 packet = new DatagramPacket(buf, buf.length);
                 break;
@@ -46,7 +49,7 @@ public class Message {
         return id;
     }
 
-    public String getNodeName(){ return nodeName; }
+    public String getOwnerNodeName(){ return ownerNodeName; }
 
     public String getType() {
         return type;
