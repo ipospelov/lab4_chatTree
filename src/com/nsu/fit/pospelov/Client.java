@@ -1,10 +1,14 @@
 package com.nsu.fit.pospelov;
 
+import sun.misc.Signal;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
+
+import static java.lang.Thread.sleep;
 
 public class Client {
 
@@ -15,7 +19,8 @@ public class Client {
             while (true) {
                 message = in.nextLine();
                 try {
-                    messageHandlerSingleton.putMessageIntoDeque("USERS",message,clientName);
+                    if(!message.equals(""))
+                        messageHandlerSingleton.putMessageIntoDeque("USERS",message,clientName);
                 } catch (IOException e) {
                     System.out.println("Putting into Deque error");
                     e.printStackTrace();
@@ -47,13 +52,15 @@ public class Client {
                 try {
                     messageHandlerSingleton.receiveMessage();
                 } catch (Exception e) {
-                    //e.printStackTrace();
+                    e.printStackTrace();
 
                     continue;
                 }
             }
         }
     }
+
+
 
     private InputStreamReader inputStreamReader;
     private MessageSender messageSender;
@@ -70,7 +77,7 @@ public class Client {
     private Deque<Message> toSend;                     //очередь сообщений на отправку
 
     private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
-
+    private ChatSignalHandler signalHandler;
 
 
     Client(String nodeName, int losePercent, int port) throws Exception {
@@ -81,14 +88,16 @@ public class Client {
         messageSender = new MessageSender();
         node = new Node(nodeName, losePercent, port);
         socket = new DatagramSocket(port);
-        //System.out.println(port);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
-        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
+        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend, node);
 
         messageReader.start();
         inputStreamReader.start();
         messageSender.start();
+
+        setSignalHandler(nodeName);
     }
+
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
         clientName = nodeName;
@@ -100,13 +109,33 @@ public class Client {
 
         parentNode = new Node(parentAddress, parentPort);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
-        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend);
+        messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend, node);
         messageHandlerSingleton.putMessageIntoDeque("CONNECT", null, nodeName);
 
         messageSender.start();
         inputStreamReader.start();
         messageReader.start();
 
+        setSignalHandler(nodeName);
+
+    }
+
+    private void setSignalHandler(String nodeName){
+        signalHandler = new ChatSignalHandler(){
+            @Override
+            public void handle(Signal sig) {
+                try {
+                    messageHandlerSingleton.putMessageIntoDeque("DISCONNECT",null,nodeName);
+                    messageHandlerSingleton.sendMessage();
+                } catch (Exception e) {
+                    System.out.println("Disconnecting error:" + e);
+                }
+
+            }
+        };
+        ChatSignalHandler.install("TERM", signalHandler);
+        ChatSignalHandler.install("INT", signalHandler);
+        ChatSignalHandler.install("ABRT", signalHandler);
     }
 
 }

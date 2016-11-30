@@ -1,6 +1,7 @@
 package com.nsu.fit.pospelov;
 
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.util.UUID;
 
 /**
@@ -12,7 +13,8 @@ public class Message {
     private String type;
     private String usersMessage;
     private String ownerNodeName;
-    private String lastSenderNodeName;
+    private int newParentPort;
+    private InetAddress newParentNodeAddress;
 
     public Message(String usersMessage, String type, String name) {
         this.type = type;
@@ -38,7 +40,39 @@ public class Message {
                 buf = result.getBytes();
                 packet = new DatagramPacket(buf, buf.length);
                 break;
+            case "DISCONNECT":
+                result = type + ":" + id.toString() + ":" + ownerNodeName + ":" + newParentPort + ":" + newParentNodeAddress;
+                buf = result.getBytes();
+                packet = new DatagramPacket(buf, buf.length);
+                break;
+            /*case "ACK":
+                result = type + ":" + id.toString();
+                buf = result.getBytes();
+                packet = new DatagramPacket(buf, buf.length);
+                break;*/
         }
+    }
+    public void initAckDatagramPacket(UUID id){
+        String result = type + ":" + id.toString();
+        byte buf[] = buf = result.getBytes();
+        packet = new DatagramPacket(buf, buf.length);
+    }
+
+    public int getNewParentPort() {
+        return newParentPort;
+    }
+
+    public InetAddress getNewParentNodeAddress() {
+        return newParentNodeAddress;
+    }
+
+    public void setNewParentPort(int newParentPort) {
+
+        this.newParentPort = newParentPort;
+    }
+
+    public void setNewParentNodeAddress(InetAddress newParentNodeAddress) {
+        this.newParentNodeAddress = newParentNodeAddress;
     }
 
     public DatagramPacket getPacket() {
