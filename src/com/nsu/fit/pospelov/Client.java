@@ -30,24 +30,41 @@ public class Client {
         }
     }
 
+    public class DisconnectSender extends Thread{
+        public void run(){
+            try {
+                messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, clientName);
+                sleep(2500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private class MessageSender extends Thread{
         public void run(){
             int count = 0;
             while (true){
                 count++;
                 try {
-
-                    messageHandlerSingleton.sendMessage();
                     sleep(500);
+                    messageHandlerSingleton.sendMessage();
+
                     synchronized (sendedMessages) {
+                        //System.out.println(sendedMessages.size());
                         if (count == 5 && sendedMessages.size() > 0) {
-                            for (UUID key : sendedMessages.keySet()) {
+                            messageHandlerSingleton.dublicateSendedMessages();
+                            /*for (UUID key : sendedMessages.keySet()) {
+                                System.out.println(sendedMessages.get(key));
                                 messageHandlerSingleton.putMessageIntoDeque(sendedMessages.get(key));
-                            }
+                            }*/
                             count = 0;
                         }
                     }
-                    
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 } catch (Exception e) {
                     e.printStackTrace();
                     continue;
@@ -61,6 +78,8 @@ public class Client {
             while (true) {
                 try {
                     messageHandlerSingleton.receiveMessage();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 } catch (Exception e) {
                     e.printStackTrace();
 
@@ -82,10 +101,10 @@ public class Client {
     private DatagramSocket socket;
     private String clientName;
 
-    private Map<UUID,Message> receivedMessages;                 //хранилище принятых
+    private volatile Map<UUID,Message> receivedMessages;                 //хранилище принятых
     private volatile Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
-    private Deque<Message> toSend;                     //очередь сообщений на отправку
-
+    private volatile Deque<Message> toSend;                     //очередь сообщений на отправку
+    public static boolean enableToDisconnect = false;
     private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
     private ChatSignalHandler signalHandler;
 
@@ -142,8 +161,12 @@ public class Client {
             @Override
             public void handle(Signal sig) {
                 try {
-                    messageHandlerSingleton.putMessageIntoDeque("DISCONNECT",null,nodeName);
+                    messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, nodeName);
                     messageHandlerSingleton.sendMessage();
+                    inputStreamReader.interrupt();
+                    messageSender.interrupt();
+                    messageReader.interrupt();
+                    messageHandlerSingleton.waitingForDisconnectAck();
                 } catch (Exception e) {
                     System.out.println("Disconnecting error:" + e);
                 }

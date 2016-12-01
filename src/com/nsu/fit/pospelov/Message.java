@@ -53,7 +53,9 @@ public class Message {
         }
     }
     public void initAckDatagramPacket(UUID id, int port, InetAddress addr){
+        this.id = id;
         String result = type + ":" + id.toString() + ":" + ownerNodeName;
+        //System.out.println("3" + id);
         byte buf[] = buf = result.getBytes();
         packet = new DatagramPacket(buf, buf.length);
         packet.setPort(port);

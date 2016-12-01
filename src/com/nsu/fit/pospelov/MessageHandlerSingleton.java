@@ -1,5 +1,7 @@
 package com.nsu.fit.pospelov;
 
+import javafx.util.Pair;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
@@ -59,7 +61,6 @@ public class MessageHandlerSingleton {
 
     public void receiveMessage() throws Exception {
         Arrays.fill( buf, (byte) 0 );
-        Random rand = new Random();
         DatagramPacket packet = new DatagramPacket(buf,buf.length);
         socket.receive(packet);
         if( ((0 + (int)(Math.random() * ((100) + 1))) < Client.losePercent)){
@@ -103,6 +104,7 @@ public class MessageHandlerSingleton {
                 putMessageIntoDeque(message);
                 break;
             case "DISCONNECT":
+                putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
                 message.setNewParentPort(Integer.parseInt(splittedMessage[3].split("\0")[0]));
                 String ipadr = splittedMessage[4].split("\0")[0];
                 ipadr = ipadr.substring(1,ipadr.length());
@@ -130,7 +132,11 @@ public class MessageHandlerSingleton {
                 System.out.println(message.getOwnerNodeName() + " disconnected");
                 break;
             case "ACK":
-                sendedMessages.remove(message.getId());
+                synchronized (sendedMessages) {
+                    System.out.println("received ACK id:" + message.getId());
+                    sendedMessages.remove(message.getId());
+
+                }
                 break;
         }
 
@@ -140,40 +146,46 @@ public class MessageHandlerSingleton {
     public void sendMessage() throws Exception {
         Message message;
         DatagramPacket packet;
-        synchronized (sendedMessages) {
+        //synchronized (sendedMessages) {
             if (!toSend.isEmpty()) {
                 message = toSend.getFirst();
-
                 packet = message.getPacket();
                 switch (message.getType()) {
                     case "CONNECT":
                         SetNSend(parentNode, message, packet);
-                        sendedMessages.put(message.getId(), message);
+                        if(!sendedMessages.containsKey(message.getId()))
+                            sendedMessages.put(message.getId(), message);
                         break;
                     case "USERS":
                         if (receivedMessages.containsKey(message.getId())) {
                             if (parentNode != null && !equalsSenderReceiver(message, parentNode)) {
                                 SetNSend(parentNode, message, packet);
-                                sendedMessages.put(message.getId(), message);
+                                if(!sendedMessages.containsKey(message.getId()))
+                                    sendedMessages.put(message.getId(), message);
                             }
                             for (Node node : childNodes) {
                                 if (!equalsSenderReceiver(message, node)) {
                                     SetNSend(node, message, packet);
-                                    sendedMessages.put(message.getId(), message);
+                                    if(!sendedMessages.containsKey(message.getId()))
+                                        sendedMessages.put(message.getId(), message);
                                 }
                             }
                         } else {
                             if (parentNode != null) {
                                 SetNSend(parentNode, message, packet);
-                                sendedMessages.put(message.getId(), message);
+                                if(!sendedMessages.containsKey(message.getId()))
+                                    sendedMessages.put(message.getId(), message);
                             }
                             for (Node node : childNodes) {
                                 SetNSend(node, message, packet);
-                                sendedMessages.put(message.getId(), message);
+                                if(!sendedMessages.containsKey(message.getId()))
+                                    sendedMessages.put(message.getId(), message);
                             }
                         }
                         break;
                     case "DISCONNECT":
+                        System.out.println("sending DISC id:" + message.getId());
+                        sendedMessages.put(message.getId(), message);
                         if (parentNode != null)
                             SetNSend(parentNode, message, packet);
                         for (Node node : childNodes) {
@@ -181,19 +193,59 @@ public class MessageHandlerSingleton {
                         }
                         break;
                     case "ACK":
+                        System.out.println("sending ACK id:" + message.getId());
                         socket.send(packet);
                         break;
                 }
 
                 toSend.removeFirst();
 
-            }
         }
     }
     private void SetNSend(Node node, Message message, DatagramPacket packet) throws IOException {
         packet.setPort(node.getNodePort());
         packet.setAddress(node.getNodeAddress());
         socket.send(packet);
+    }
+
+    public void dublicateSendedMessages(){
+        Iterator entries = sendedMessages.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry thisEntry = (Map.Entry) entries.next();
+            putMessageIntoDeque((Message) thisEntry.getValue());
+        }
+    }
+
+    public void waitingForDisconnectAck() throws Exception {
+        Arrays.fill( buf, (byte) 0 );
+        Message message;
+        String[] splittedMessage;
+        DatagramPacket packet = new DatagramPacket(buf,buf.length);
+        Iterator entries = sendedMessages.entrySet().iterator();
+
+        while (entries.hasNext()) {
+            Map.Entry thisEntry = (Map.Entry) entries.next();
+            message = (Message)thisEntry.getValue();
+            if(message.getType().equals("USERS") || message.getType().equals("CONNECT"))
+                //System.out.println(message.getType());
+                sendedMessages.remove((Message) thisEntry.getKey());
+        }
+
+        System.out.println(sendedMessages.size());
+
+        while(sendedMessages.size() > 0){
+            socket.receive(packet);
+            //System.out.println("test3");
+            String s = new String(packet.getData(), "ASCII");
+            splittedMessage = s.split(":", -1);
+            message = new Message(null,splittedMessage[0].split("\0")[0], splittedMessage[2].split("\0")[0]); //usersMes, type, nodeName
+            message.setId(java.util.UUID.fromString(splittedMessage[1].split("\0")[0]));
+            //System.out.println(s);
+            if(message.getType().equals("ACK") && sendedMessages.containsKey(message.getId()))
+                sendedMessages.remove(message.getId());
+
+        }
+        return;
     }
 
 
@@ -205,6 +257,7 @@ public class MessageHandlerSingleton {
     }
 
     private void removeDeadChild(DatagramPacket packet){
+
         for(Node node : childNodes){
             if(packet.getPort()==node.getNodePort() && packet.getAddress().equals(node.getNodeAddress())){
                 childNodes.remove(node);
@@ -214,7 +267,7 @@ public class MessageHandlerSingleton {
     }
 
 
-    public void putMessageIntoDeque(String type, String data, String name) throws IOException { //помещает message в очередь
+    public synchronized void putMessageIntoDeque(String type, String data, String name) throws IOException { //помещает message в очередь
         Message message = new Message(data, type, name);
 
         if(type.equals("DISCONNECT")){
@@ -225,8 +278,8 @@ public class MessageHandlerSingleton {
                 if(childNodes.size() > 0) {
                     message.setNewParentPort(childNodes.iterator().next().getNodePort());
                     message.setNewParentNodeAddress(childNodes.iterator().next().getNodeAddress());
-                    System.out.println(message.getNewParentPort());
-                    System.out.println(message.getNewParentNodeAddress());
+                    /*System.out.println(message.getNewParentPort());
+                    System.out.println(message.getNewParentNodeAddress());*/
                 }else {
                     message.setNewParentPort(-1);
                     message.setNewParentNodeAddress(InetAddress.getLocalHost());
@@ -234,18 +287,26 @@ public class MessageHandlerSingleton {
             }
         }
         message.initDatagramPacket();
-        toSend.push(message);
+        synchronized (toSend) {
+            toSend.push(message);
+        }
     }
 
     public void putAckIntoDeque(UUID id, String ownerName, int port, InetAddress address){
         Message message = new Message(null,"ACK",ownerName);
         message.initAckDatagramPacket(id,port,address);
-        toSend.push(message);
+        //System.out.println("2" + id);
+        //System.out.println("Putting ACK id: " + message.getId());
+        synchronized (toSend) {
+            toSend.push(message);
+        }
     }
 
     public void putMessageIntoDeque(Message message){
         message.initDatagramPacket();
-        toSend.push(message);
+        synchronized (toSend) {
+            toSend.push(message);
+        }
     }
 
     public static  <K, V> Map<K, V> createLRUMap(final int maxEntries) {
