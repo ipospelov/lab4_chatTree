@@ -39,11 +39,13 @@ public class Client {
 
                     messageHandlerSingleton.sendMessage();
                     sleep(500);
-                    if(count == 5 && sendedMessages.size() > 0){
-                        for (UUID key: sendedMessages.keySet()) {
-                            messageHandlerSingleton.putMessageIntoDeque(sendedMessages.get(key));
+                    synchronized (sendedMessages) {
+                        if (count == 5 && sendedMessages.size() > 0) {
+                            for (UUID key : sendedMessages.keySet()) {
+                                messageHandlerSingleton.putMessageIntoDeque(sendedMessages.get(key));
+                            }
+                            count = 0;
                         }
-                        count = 0;
                     }
                     
                 } catch (Exception e) {
@@ -87,11 +89,13 @@ public class Client {
     private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
     private ChatSignalHandler signalHandler;
 
+    public static int losePercent;
+
 
     Client(String nodeName, int losePercent, int port) throws Exception {
         sendedMessages = createLRUMap(15);
         receivedMessages = createLRUMap(15);
-
+        this.losePercent = losePercent;
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         messageReader = new MessageReader();
@@ -112,7 +116,7 @@ public class Client {
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
         sendedMessages = createLRUMap(15);
         receivedMessages = createLRUMap(15);
-
+        this.losePercent = losePercent;
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         messageSender = new MessageSender();
