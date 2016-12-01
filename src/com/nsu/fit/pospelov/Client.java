@@ -3,9 +3,7 @@ package com.nsu.fit.pospelov;
 import sun.misc.Signal;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.*;
 import java.util.*;
 
 import static com.nsu.fit.pospelov.MessageHandlerSingleton.createLRUMap;
@@ -102,10 +100,9 @@ public class Client {
     private String clientName;
 
     private volatile Map<UUID,Message> receivedMessages;                 //хранилище принятых
-    private volatile Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
+    private volatile Map<UUID,Message> sendedMessages;
     private volatile Deque<Message> toSend;                     //очередь сообщений на отправку
-    public static boolean enableToDisconnect = false;
-    private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
+    private MessageHandlerSingleton messageHandlerSingleton;                     //ие сообщений, отправку, запись в контейнеры
     private ChatSignalHandler signalHandler;
 
     public static int losePercent;
@@ -120,6 +117,7 @@ public class Client {
         messageReader = new MessageReader();
         messageSender = new MessageSender();
         node = new Node(nodeName, losePercent, port);
+        node.setNodeAddress(getLocalAddress());
         socket = new DatagramSocket(port);
         messageHandlerSingleton = MessageHandlerSingleton.getInstance();
         messageHandlerSingleton.MessageHandlerInit(socket, parentNode,childNodes, sendedMessages, receivedMessages, toSend, node);
@@ -141,6 +139,8 @@ public class Client {
         messageSender = new MessageSender();
         messageReader = new MessageReader();
         node = new Node(nodeName, losePercent, port);
+
+        node.setNodeAddress(getLocalAddress());
         socket = new DatagramSocket(port);
 
         parentNode = new Node(parentAddress, parentPort);
@@ -161,11 +161,11 @@ public class Client {
             @Override
             public void handle(Signal sig) {
                 try {
-                    messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, nodeName);
-                    messageHandlerSingleton.sendMessage();
                     inputStreamReader.interrupt();
                     messageSender.interrupt();
                     messageReader.interrupt();
+                    messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, nodeName);
+                    messageHandlerSingleton.sendMessage();
                     messageHandlerSingleton.waitingForDisconnectAck();
                 } catch (Exception e) {
                     System.out.println("Disconnecting error:" + e);
@@ -176,6 +176,20 @@ public class Client {
         ChatSignalHandler.install("TERM", signalHandler);
         ChatSignalHandler.install("INT", signalHandler);
         ChatSignalHandler.install("ABRT", signalHandler);
+    }
+
+    private static InetAddress getLocalAddress(){
+        try {
+            Enumeration<NetworkInterface> b = NetworkInterface.getNetworkInterfaces();
+            while( b.hasMoreElements()){
+                for ( InterfaceAddress f : b.nextElement().getInterfaceAddresses())
+                    if ( f.getAddress().isSiteLocalAddress())
+                        return f.getAddress();
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

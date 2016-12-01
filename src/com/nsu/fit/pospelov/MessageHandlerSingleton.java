@@ -8,6 +8,7 @@ import java.lang.reflect.Array;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadLocalRandom;
@@ -104,6 +105,7 @@ public class MessageHandlerSingleton {
                 putMessageIntoDeque(message);
                 break;
             case "DISCONNECT":
+                receivedMessages.put(message.getId(),message);
                 putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
                 message.setNewParentPort(Integer.parseInt(splittedMessage[3].split("\0")[0]));
                 String ipadr = splittedMessage[4].split("\0")[0];
@@ -112,7 +114,8 @@ public class MessageHandlerSingleton {
                 if(parentNode != null){
                     if(packet.getPort() == parentNode.getNodePort()
                             &&packet.getAddress().equals(parentNode.getNodeAddress())) {
-
+                        System.out.println(clientNode.getNodeAddress());
+                        System.out.println(message.getNewParentNodeAddress());
                         if (message.getNewParentPort() == clientNode.getNodePort()
                                 && message.getNewParentNodeAddress().equals(clientNode.getNodeAddress())) {
                             parentNode = null;
@@ -133,7 +136,7 @@ public class MessageHandlerSingleton {
                 break;
             case "ACK":
                 synchronized (sendedMessages) {
-                    System.out.println("received ACK id:" + message.getId());
+                    //System.out.println("received ACK id:" + message.getId());
                     sendedMessages.remove(message.getId());
 
                 }
@@ -184,8 +187,9 @@ public class MessageHandlerSingleton {
                         }
                         break;
                     case "DISCONNECT":
-                        System.out.println("sending DISC id:" + message.getId());
-                        sendedMessages.put(message.getId(), message);
+                        //System.out.println("sending DISC id:" + message.getId());
+                        if(parentNode != null || childNodes.size() > 0)
+                            sendedMessages.put(message.getId(), message);
                         if (parentNode != null)
                             SetNSend(parentNode, message, packet);
                         for (Node node : childNodes) {
@@ -193,7 +197,7 @@ public class MessageHandlerSingleton {
                         }
                         break;
                     case "ACK":
-                        System.out.println("sending ACK id:" + message.getId());
+                        //System.out.println("sending ACK id:" + message.getId());
                         socket.send(packet);
                         break;
                 }
@@ -216,12 +220,16 @@ public class MessageHandlerSingleton {
         }
     }
 
-    public void waitingForDisconnectAck() throws Exception {
+    public void waitingForDisconnectAck()  throws IOException{
+        System.out.println("Some");
+        if((parentNode == null && childNodes.size() == 0) || sendedMessages.size() == 0) {
+            return;
+        }
         Arrays.fill( buf, (byte) 0 );
         Message message;
         String[] splittedMessage;
         DatagramPacket packet = new DatagramPacket(buf,buf.length);
-        Iterator entries = sendedMessages.entrySet().iterator();
+        /*Iterator entries = sendedMessages.entrySet().iterator();
 
         while (entries.hasNext()) {
             Map.Entry thisEntry = (Map.Entry) entries.next();
@@ -230,11 +238,31 @@ public class MessageHandlerSingleton {
                 //System.out.println(message.getType());
                 sendedMessages.remove((Message) thisEntry.getKey());
         }
-
+*/
+        System.out.println("Some3");
+        System.out.println(parentNode);
+        System.out.println(childNodes.size());
         System.out.println(sendedMessages.size());
+        //System.out.println(sendedMessages.size());
+        try {
+            socket.setSoTimeout(1000);
+        }catch (Exception e){
+            System.out.println(e);
+        }
 
-        while(sendedMessages.size() > 0){
-            socket.receive(packet);
+        System.out.println("Some2");
+        while(!sendedMessages.containsValue("DISCONNECT")){
+            System.out.println("Some");
+            try {
+                socket.receive(packet);
+            }catch (SocketTimeoutException e){
+                System.out.println(parentNode);
+                System.out.println(childNodes.size());
+                System.out.println(sendedMessages.size());
+                if((parentNode == null && childNodes.size() == 0) || sendedMessages.size() == 0)
+                    return;
+                continue;
+            }
             //System.out.println("test3");
             String s = new String(packet.getData(), "ASCII");
             splittedMessage = s.split(":", -1);
@@ -245,6 +273,7 @@ public class MessageHandlerSingleton {
                 sendedMessages.remove(message.getId());
 
         }
+        System.out.println("Some1");
         return;
     }
 
