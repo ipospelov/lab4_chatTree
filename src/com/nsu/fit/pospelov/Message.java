@@ -52,10 +52,12 @@ public class Message {
                 break;*/
         }
     }
-    public void initAckDatagramPacket(UUID id){
-        String result = type + ":" + id.toString();
+    public void initAckDatagramPacket(UUID id, int port, InetAddress addr){
+        String result = type + ":" + id.toString() + ":" + ownerNodeName;
         byte buf[] = buf = result.getBytes();
         packet = new DatagramPacket(buf, buf.length);
+        packet.setPort(port);
+        packet.setAddress(addr);
     }
 
     public int getNewParentPort() {

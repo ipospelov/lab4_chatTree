@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
 
+import static com.nsu.fit.pospelov.MessageHandlerSingleton.createLRUMap;
 import static java.lang.Thread.sleep;
 
 public class Client {
@@ -31,12 +32,19 @@ public class Client {
 
     private class MessageSender extends Thread{
         public void run(){
+            int count = 0;
             while (true){
-
+                count++;
                 try {
 
                     messageHandlerSingleton.sendMessage();
                     sleep(500);
+                    if(count == 5 && sendedMessages.size() > 0){
+                        for (UUID key: sendedMessages.keySet()) {
+                            messageHandlerSingleton.putMessageIntoDeque(sendedMessages.get(key));
+                        }
+                        count = 0;
+                    }
                     
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -73,7 +81,7 @@ public class Client {
     private String clientName;
 
     private Map<UUID,Message> receivedMessages;                 //хранилище принятых
-    private Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
+    private volatile Map<UUID,Message> sendedMessages;                   //хранилище отправленных, чтобы не получать подтверждения по несколько раз
     private Deque<Message> toSend;                     //очередь сообщений на отправку
 
     private MessageHandlerSingleton messageHandlerSingleton;                     //сущность, отвечающая за формирование сообщений, отправку, запись в контейнеры
@@ -81,6 +89,8 @@ public class Client {
 
 
     Client(String nodeName, int losePercent, int port) throws Exception {
+        sendedMessages = createLRUMap(15);
+        receivedMessages = createLRUMap(15);
 
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
@@ -100,6 +110,9 @@ public class Client {
 
 
     Client(String nodeName, int losePercent, int port, InetAddress parentAddress, int parentPort) throws Exception {
+        sendedMessages = createLRUMap(15);
+        receivedMessages = createLRUMap(15);
+
         clientName = nodeName;
         inputStreamReader = new InputStreamReader();
         messageSender = new MessageSender();
