@@ -93,6 +93,7 @@ public class MessageHandlerSingleton {
 
         switch (message.getType()){
             case "CONNECT":
+                System.out.println("getting CONNECT");
                 receivedMessages.put(message.getId(),message);
                 putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
                 childNodes.add(new Node(message.getOwnerNodeName(),packet.getAddress(),packet.getPort()));
@@ -105,23 +106,29 @@ public class MessageHandlerSingleton {
                 putMessageIntoDeque(message);
                 break;
             case "DISCONNECT":
-                receivedMessages.put(message.getId(),message);
-                putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
+                //receivedMessages.put(message.getId(),message);
+                //putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
                 message.setNewParentPort(Integer.parseInt(splittedMessage[3].split("\0")[0]));
                 String ipadr = splittedMessage[4].split("\0")[0];
                 ipadr = ipadr.substring(1,ipadr.length());
                 message.setNewParentNodeAddress(InetAddress.getByName(ipadr));
+                System.out.println(message.getNewParentNodeAddress());
+                System.out.println(message.getNewParentPort());
                 if(parentNode != null){
                     if(packet.getPort() == parentNode.getNodePort()
                             &&packet.getAddress().equals(parentNode.getNodeAddress())) {
-                        System.out.println(clientNode.getNodeAddress());
-                        System.out.println(message.getNewParentNodeAddress());
                         if (message.getNewParentPort() == clientNode.getNodePort()
                                 && message.getNewParentNodeAddress().equals(clientNode.getNodeAddress())) {
                             parentNode = null;
                         }
+                        System.out.println("New parent port:" + message.getNewParentPort() );
+                        System.out.println("New parent adress:" + message.getNewParentNodeAddress() );
+                        System.out.println("New client port:" + clientNode.getNodePort() );
+                        System.out.println("New client adress:" + clientNode.getNodeAddress() );
+
                         if (message.getNewParentPort() != clientNode.getNodePort()
-                                && !message.getNewParentNodeAddress().equals(clientNode.getNodeAddress())) {
+                                || !message.getNewParentNodeAddress().equals(clientNode.getNodeAddress())) {
+                            System.out.println("Putting CONNECT");
                             parentNode = new Node(message.getNewParentNodeAddress(), message.getNewParentPort());
                             putMessageIntoDeque("CONNECT", null, clientNode.getNodeName());
                         }
@@ -155,6 +162,7 @@ public class MessageHandlerSingleton {
                 packet = message.getPacket();
                 switch (message.getType()) {
                     case "CONNECT":
+                        System.out.println("Connecting to: " + parentNode.getNodePort());
                         SetNSend(parentNode, message, packet);
                         if(!sendedMessages.containsKey(message.getId()))
                             sendedMessages.put(message.getId(), message);
@@ -188,8 +196,8 @@ public class MessageHandlerSingleton {
                         break;
                     case "DISCONNECT":
                         //System.out.println("sending DISC id:" + message.getId());
-                        if(parentNode != null || childNodes.size() > 0)
-                            sendedMessages.put(message.getId(), message);
+                        /*if(parentNode != null || childNodes.size() > 0)
+                            sendedMessages.put(message.getId(), message);*/
                         if (parentNode != null)
                             SetNSend(parentNode, message, packet);
                         for (Node node : childNodes) {
@@ -238,19 +246,13 @@ public class MessageHandlerSingleton {
                 //System.out.println(message.getType());
                 sendedMessages.remove((Message) thisEntry.getKey());
         }
-*/
-        System.out.println("Some3");
-        System.out.println(parentNode);
-        System.out.println(childNodes.size());
-        System.out.println(sendedMessages.size());
         //System.out.println(sendedMessages.size());
-        try {
-            socket.setSoTimeout(1000);
-        }catch (Exception e){
+     /*   try {*/
+        socket.setSoTimeout(1000);
+   /*     }catch (Exception e){
             System.out.println(e);
         }
-
-        System.out.println("Some2");
+        */
         while(!sendedMessages.containsValue("DISCONNECT")){
             System.out.println("Some");
             try {

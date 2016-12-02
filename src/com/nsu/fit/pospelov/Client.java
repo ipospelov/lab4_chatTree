@@ -161,12 +161,12 @@ public class Client {
             @Override
             public void handle(Signal sig) {
                 try {
-                    inputStreamReader.interrupt();
-                    messageSender.interrupt();
-                    messageReader.interrupt();
+                    //inputStreamReader.interrupt();
+                    //messageSender.interrupt();
+                    //messageReader.interrupt();
                     messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, nodeName);
                     messageHandlerSingleton.sendMessage();
-                    messageHandlerSingleton.waitingForDisconnectAck();
+                    //messageHandlerSingleton.waitingForDisconnectAck();
                 } catch (Exception e) {
                     System.out.println("Disconnecting error:" + e);
                 }
