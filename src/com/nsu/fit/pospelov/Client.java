@@ -32,6 +32,7 @@ public class Client {
         public void run(){
             try {
                 messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, clientName);
+                messageHandlerSingleton.sendMessage();
                 sleep(2500);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -156,12 +157,14 @@ public class Client {
         signalHandler = new ChatSignalHandler(){
             @Override
             public void handle(Signal sig) {
+                DisconnectSender disconnectSender = new DisconnectSender();
                 try {
                     inputStreamReader.interrupt();
                     messageSender.interrupt();
                     messageReader.interrupt();
                     messageHandlerSingleton.putMessageIntoDeque("DISCONNECT", null, nodeName);
                     messageHandlerSingleton.sendMessage();
+                    disconnectSender.run();
                     messageHandlerSingleton.waitingForDisconnectAck();
                 } catch (Exception e) {
                     System.out.println("Disconnecting error:" + e);

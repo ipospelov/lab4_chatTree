@@ -116,14 +116,9 @@ public class MessageHandlerSingleton {
                                 && message.getNewParentNodeAddress().equals(clientNode.getNodeAddress())) {
                             parentNode = null;
                         }
-                        System.out.println("New parent port:" + message.getNewParentPort() );
-                        System.out.println("New parent adress:" + message.getNewParentNodeAddress() );
-                        System.out.println("New client port:" + clientNode.getNodePort() );
-                        System.out.println("New client adress:" + clientNode.getNodeAddress() );
 
                         if (message.getNewParentPort() != clientNode.getNodePort()
                                 || !message.getNewParentNodeAddress().equals(clientNode.getNodeAddress())) {
-                            System.out.println("Putting CONNECT");
                             parentNode = new Node(message.getNewParentNodeAddress(), message.getNewParentPort());
                             putMessageIntoDeque("CONNECT", null, clientNode.getNodeName());
                         }
@@ -134,7 +129,7 @@ public class MessageHandlerSingleton {
                 }else{
                     removeDeadChild(packet);
                 }
-                System.out.println(message.getOwnerNodeName() + " disconnected");
+                //System.out.println(message.getOwnerNodeName() + " disconnected");
                 break;
             case "ACK":
                 synchronized (sendedMessages) {
@@ -221,7 +216,6 @@ public class MessageHandlerSingleton {
     }
 
     public void waitingForDisconnectAck()  throws IOException{
-        System.out.println("Some");
         if((parentNode == null && childNodes.size() == 0) || sendedMessages.size() == 0) {
             return;
         }
@@ -235,7 +229,6 @@ public class MessageHandlerSingleton {
         }
         */
         while(!sendedMessages.containsValue("DISCONNECT")){
-            System.out.println("Some");
             try {
                 socket.receive(packet);
             }catch (SocketTimeoutException e){
@@ -256,7 +249,6 @@ public class MessageHandlerSingleton {
                 sendedMessages.remove(message.getId());
 
         }
-        System.out.println("Some1");
         return;
     }
 
