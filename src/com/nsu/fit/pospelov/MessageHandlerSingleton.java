@@ -93,7 +93,6 @@ public class MessageHandlerSingleton {
 
         switch (message.getType()){
             case "CONNECT":
-                System.out.println("getting CONNECT");
                 receivedMessages.put(message.getId(),message);
                 putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
                 childNodes.add(new Node(message.getOwnerNodeName(),packet.getAddress(),packet.getPort()));
@@ -106,14 +105,10 @@ public class MessageHandlerSingleton {
                 putMessageIntoDeque(message);
                 break;
             case "DISCONNECT":
-                //receivedMessages.put(message.getId(),message);
-                //putAckIntoDeque(message.getId(),clientNode.getNodeName(),packet.getPort(),packet.getAddress());
                 message.setNewParentPort(Integer.parseInt(splittedMessage[3].split("\0")[0]));
                 String ipadr = splittedMessage[4].split("\0")[0];
                 ipadr = ipadr.substring(1,ipadr.length());
                 message.setNewParentNodeAddress(InetAddress.getByName(ipadr));
-                System.out.println(message.getNewParentNodeAddress());
-                System.out.println(message.getNewParentPort());
                 if(parentNode != null){
                     if(packet.getPort() == parentNode.getNodePort()
                             &&packet.getAddress().equals(parentNode.getNodeAddress())) {
@@ -162,7 +157,7 @@ public class MessageHandlerSingleton {
                 packet = message.getPacket();
                 switch (message.getType()) {
                     case "CONNECT":
-                        System.out.println("Connecting to: " + parentNode.getNodePort());
+                        //System.out.println("Connecting to: " + parentNode.getNodePort());
                         SetNSend(parentNode, message, packet);
                         if(!sendedMessages.containsKey(message.getId()))
                             sendedMessages.put(message.getId(), message);
@@ -195,9 +190,6 @@ public class MessageHandlerSingleton {
                         }
                         break;
                     case "DISCONNECT":
-                        //System.out.println("sending DISC id:" + message.getId());
-                        /*if(parentNode != null || childNodes.size() > 0)
-                            sendedMessages.put(message.getId(), message);*/
                         if (parentNode != null)
                             SetNSend(parentNode, message, packet);
                         for (Node node : childNodes) {
@@ -237,17 +229,6 @@ public class MessageHandlerSingleton {
         Message message;
         String[] splittedMessage;
         DatagramPacket packet = new DatagramPacket(buf,buf.length);
-        /*Iterator entries = sendedMessages.entrySet().iterator();
-
-        while (entries.hasNext()) {
-            Map.Entry thisEntry = (Map.Entry) entries.next();
-            message = (Message)thisEntry.getValue();
-            if(message.getType().equals("USERS") || message.getType().equals("CONNECT"))
-                //System.out.println(message.getType());
-                sendedMessages.remove((Message) thisEntry.getKey());
-        }
-        //System.out.println(sendedMessages.size());
-     /*   try {*/
         socket.setSoTimeout(1000);
    /*     }catch (Exception e){
             System.out.println(e);
@@ -309,8 +290,6 @@ public class MessageHandlerSingleton {
                 if(childNodes.size() > 0) {
                     message.setNewParentPort(childNodes.iterator().next().getNodePort());
                     message.setNewParentNodeAddress(childNodes.iterator().next().getNodeAddress());
-                    /*System.out.println(message.getNewParentPort());
-                    System.out.println(message.getNewParentNodeAddress());*/
                 }else {
                     message.setNewParentPort(-1);
                     message.setNewParentNodeAddress(InetAddress.getLocalHost());
@@ -326,8 +305,6 @@ public class MessageHandlerSingleton {
     public void putAckIntoDeque(UUID id, String ownerName, int port, InetAddress address){
         Message message = new Message(null,"ACK",ownerName);
         message.initAckDatagramPacket(id,port,address);
-        //System.out.println("2" + id);
-        //System.out.println("Putting ACK id: " + message.getId());
         synchronized (toSend) {
             toSend.push(message);
         }
